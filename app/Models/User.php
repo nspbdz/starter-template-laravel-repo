@@ -18,10 +18,13 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'referral_id',
         'name',
         'email',
-        'password',
+        'phone',
+        'is_active',
+        'units_id',
+        'role',
+
     ];
 
     /**
@@ -32,7 +35,6 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'saldo',
     ];
 
     /**
@@ -43,6 +45,12 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function unit()
+    {
+        return $this->hasMany(Unit::class, 'id');
+    }
+
 
     /**
      * Get the referral record associated with the user.

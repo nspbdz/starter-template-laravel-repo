@@ -134,12 +134,50 @@ class CommonUtil
         return mt_rand(100000, 999999);
     }
 
+
+
     public static function sendSms($noTelp, $textSms = "default", $desc = "Agreesip")
     {
-        // // Send sms gateway
-        //isi dengan gateway sendiri
+        // Send sms gateway
+        $curltoken = curl_init();
+        $data = array('Username' => env('GM_USER', ''), 'password' => env('GM_PASS', ''));
+        curl_setopt($curltoken, CURLOPT_URL, 'https://smsgw.sitama.co.id/api/oauth/token');
+        curl_setopt($curltoken, CURLOPT_POST, 1);
+        curl_setopt($curltoken, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($curltoken, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curltoken, CURLOPT_SSL_VERIFYPEER, false);
+        $result = curl_exec($curltoken);
+        curl_close($curltoken);
 
-        // return $response;
+        $tokenbearer = json_decode($result, true)['access_token'];
+
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => 'https://smsgw.sitama.co.id/api/SMS/smssitama',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => '{
+                                          "notelp": "' . self::changeFormatPhoneTo62($noTelp) . '",
+                                          "textsms": "' . $textSms . '",
+                                          "desc": "' . $desc . '"
+                                      }',
+            CURLOPT_HTTPHEADER => array(
+                'Authorization: Bearer ' . $tokenbearer,
+                'Content-Type: text/plain'
+            ),
+        ));
+
+        $response = curl_exec($curl);
+
+        curl_close($curl);
+
+        return $response;
     }
 
     public static function generateOtp($indentifier, $length = 6, $minutes = 5)
@@ -154,5 +192,32 @@ class CommonUtil
         $otp = new Otp;
 
         return $otp->validate($indentifier, $code_otp);
+    }
+
+    public static function changeFormatPhoneTo62($noHp)
+    {
+        //Terlebih dahulu kita trim dl
+        $noHp = trim($noHp);
+        //bersihkan dari karakter yang tidak perlu
+        $noHp = strip_tags($noHp);
+        // Berishkan dari spasi
+        $noHp = str_replace(" ", "", $noHp);
+        // bersihkan dari bentuk seperti  (022) 66677788
+        $noHp = str_replace("(", "", $noHp);
+        // bersihkan dari format yang ada titik seperti 0811.222.333.4
+        $noHp = str_replace(".", "", $noHp);
+
+        //cek apakah mengandung karakter + dan 0-9
+        if (!preg_match('/[^+0-9]/', trim($noHp))) {
+            // cek apakah no hp karakter 1-3 adalah +62
+            if (substr(trim($noHp), 0, 3) == '+62') {
+                $noHp = trim($noHp);
+            }
+            // cek apakah no hp karakter 1 adalah 0
+            elseif (substr($noHp, 0, 1) == '0') {
+                $noHp = '+62' . substr($noHp, 1);
+            }
+        }
+        return $noHp;
     }
 }
